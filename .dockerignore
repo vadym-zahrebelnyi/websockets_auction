@@ -1,0 +1,28 @@
+# Python
+.venv
+__pycache__/
+*.pyc
+
+# Tests / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# OS
+.DS_Store
+Thumbs.db
