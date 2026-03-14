@@ -14,13 +14,17 @@ from src.exceptions import (
     BidCreateException,
 )
 from src.models import Lot, LotStatusEnum, Bid
-from src.schemas import LotCreateSchema, BidCreateSchema
+from src.schemas import LotCreateSchema, BidCreateSchema, BidPlacedReadSchema
+
+from src.websocket import WSConnectionManager
 
 settings = get_settings()
 
 class AuctionService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, ws: WSConnectionManager | None = None):
         self.db = db
+        if ws:
+            self.ws = ws
 
     async def get_lots(self) -> Sequence[Lot]:
         result = await self.db.execute(select(Lot))
@@ -38,7 +42,7 @@ class AuctionService:
             await self.db.commit()
             await self.db.refresh(lot)
             return lot
-        except IntegrityError as e:
+        except IntegrityError:
             await self.db.rollback()
             raise LotCreateException()
 
@@ -46,6 +50,9 @@ class AuctionService:
         lot = await self.db.get(Lot, lot_id)
         if not lot:
             raise LotNotFoundException()
+
+        if lot.status == LotStatusEnum.ENDED:
+            raise LotEndedException()
 
         time_remaining = (lot.end_time - datetime.now(timezone.utc)).total_seconds()
         if time_remaining <= 0:
@@ -55,9 +62,6 @@ class AuctionService:
                 await self.db.commit()
             except IntegrityError:
                 await self.db.rollback()
-                raise BidCreateException()
-
-        if lot.status == LotStatusEnum.ENDED:
             raise LotEndedException()
         
         if lot.price >= bid_data.amount:
@@ -79,6 +83,10 @@ class AuctionService:
             self.db.add(lot)
             await self.db.commit()
             await self.db.refresh(bid)
+            
+            message = BidPlacedReadSchema.model_validate(bid).model_dump(mode="json")
+            await self.ws.broadcast(lot_id, message)
+            
             return bid
         except IntegrityError:
             await self.db.rollback()
