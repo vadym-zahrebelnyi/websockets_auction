@@ -17,6 +17,7 @@ router = APIRouter()
 
 AService = Annotated[AuctionService, Depends(get_auction_service)]
 
+
 @router.get(
     "/lots",
     response_model=list[LotReadSchema],
@@ -51,7 +52,7 @@ async def place_bid(lot_id: int, bid_data: BidCreateSchema, service: AService):
 
 
 @router.websocket("/ws/lots/{lot_id:int}")
-async def lot_websocket(
+async def lot_subscription(
     lot_id: int,
     websocket: WebSocket,
     service: AService

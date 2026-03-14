@@ -21,10 +21,9 @@ from src.websocket import WSConnectionManager
 settings = get_settings()
 
 class AuctionService:
-    def __init__(self, db: AsyncSession, ws: WSConnectionManager | None = None):
+    def __init__(self, db: AsyncSession, ws: WSConnectionManager):
         self.db = db
-        if ws:
-            self.ws = ws
+        self.ws = ws
 
     async def get_lots(self) -> Sequence[Lot]:
         result = await self.db.execute(select(Lot))
@@ -83,9 +82,10 @@ class AuctionService:
             self.db.add(lot)
             await self.db.commit()
             await self.db.refresh(bid)
-            
-            message = BidPlacedReadSchema.model_validate(bid).model_dump(mode="json")
-            await self.ws.broadcast(lot_id, message)
+
+            if self.ws:
+                message = BidPlacedReadSchema.model_validate(bid).model_dump(mode="json")
+                await self.ws.broadcast(lot_id, message)
             
             return bid
         except IntegrityError:
