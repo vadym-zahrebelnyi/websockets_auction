@@ -8,6 +8,10 @@ from src.service import AuctionService
 settings = get_settings()
 
 async def run_auction_worker():
+    """
+    Background worker that periodically checks for and closes expired auction lots.
+    Runs in an infinite loop until the application is shut down.
+    """
     while True:
         async with AsyncSessionLocal() as session:
             service = AuctionService(session)

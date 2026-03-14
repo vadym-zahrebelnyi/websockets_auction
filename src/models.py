@@ -15,15 +15,18 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
+    """Base class for all models."""
     pass
 
 
 class LotStatusEnum(StrEnum):
+    """Enum for auction lot status."""
     RUNNING = "running"
     ENDED = "ended"
 
 
 class Lot(Base):
+    """Lot model representing an item in the auction."""
     __tablename__ = "lots"
     __table_args__ = (CheckConstraint("price > 0", name="check_price_positive"),)
 
@@ -44,6 +47,7 @@ class Lot(Base):
 
 
 class Bid(Base):
+    """Bid model representing a bid placed on a lot."""
     __tablename__ = "bids"
     __table_args__ = (CheckConstraint("amount > 0", name="check_amount_positive"),)
 

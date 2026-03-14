@@ -21,15 +21,35 @@ from src.websocket import WSConnectionManager
 settings = get_settings()
 
 class AuctionService:
+    """Business logic for auction management."""
     def __init__(self, db: AsyncSession, ws: WSConnectionManager):
+        """Initializes the service with database session and websocket manager."""
         self.db = db
         self.ws = ws
 
     async def get_lots(self) -> Sequence[Lot]:
+        """
+        Retrieves all auction lots from the database.
+
+        Returns:
+            Sequence[Lot]: A list of all lot objects found in the database.
+        """
         result = await self.db.execute(select(Lot))
         return result.scalars().all()
 
     async def create_lot(self, lot_data: LotCreateSchema) -> Lot:
+        """
+        Creates a new auction lot and saves it to the database.
+
+        Args:
+            lot_data (LotCreateSchema): The data required to create a new lot (title, price, duration).
+
+        Returns:
+            Lot: The newly created lot object with its generated ID and calculated end time.
+
+        Raises:
+            LotCreateException: If there is a database integrity error during creation.
+        """
         lot = Lot(
             title=lot_data.title,
             price=lot_data.price,
@@ -46,6 +66,24 @@ class AuctionService:
             raise LotCreateException()
 
     async def place_bid(self, lot_id: int, bid_data: BidCreateSchema) -> Bid:
+        """
+        Processes a new bid on a lot.
+        Validates lot status, price, and time remaining.
+        Broadcasts the new bid to WebSocket subscribers.
+
+        Args:
+            lot_id (int): The unique identifier of the lot to bid on.
+            bid_data (BidCreateSchema): The bid details (bidder name and amount).
+
+        Returns:
+            Bid: The recorded bid object.
+
+        Raises:
+            LotNotFoundException: If the lot ID does not exist.
+            LotEndedException: If the auction for the lot has already closed.
+            BidTooLowException: If the bid amount is not higher than the current price.
+            BidCreateException: If there is a database error during processing.
+        """
         lot = await self.db.get(Lot, lot_id)
         if not lot:
             raise LotNotFoundException()
@@ -94,6 +132,7 @@ class AuctionService:
 
 
     async def end_expired_lots(self) -> None:
+        """Updates the status of all expired lots to 'ended'."""
         stmt = (
             update(Lot)
             .where(Lot.status == LotStatusEnum.RUNNING)

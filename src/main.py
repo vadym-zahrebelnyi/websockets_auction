@@ -19,6 +19,10 @@ async def lifespan(app: FastAPI):
         return
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Auction Service API",
+    description="Real-time auction service with WebSocket support for live bid updates.",
+    lifespan=lifespan,
+)
 
 app.include_router(router)

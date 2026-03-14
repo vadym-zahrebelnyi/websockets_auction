@@ -12,6 +12,7 @@ BidDecimal = Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
 
 
 class DatabaseSettings(BaseModel):
+    """Configuration for PostgreSQL connection."""
     user: NonEmptyStr
     password: NonEmptyStr
     host: NonEmptyStr
@@ -20,6 +21,7 @@ class DatabaseSettings(BaseModel):
 
     @property
     def url(self) -> PostgresDsn:
+        """Constructs the async database URL."""
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
             username=self.user,
@@ -31,6 +33,7 @@ class DatabaseSettings(BaseModel):
 
 
 class AuctionSettings(BaseModel):
+    """Business logic settings for auctions."""
     time_extension_seconds: PositiveInt
     min_bid_step: BidDecimal
     min_duration_minutes: PositiveInt
@@ -38,6 +41,7 @@ class AuctionSettings(BaseModel):
 
 
 class Settings(BaseSettings):
+    """Main application settings loaded from environment variables."""
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -51,4 +55,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Returns a cached instance of application settings."""
     return Settings()
