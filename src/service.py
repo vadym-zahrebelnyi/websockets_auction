@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -47,15 +47,24 @@ class AuctionService:
         if not lot:
             raise LotNotFoundException()
 
+        time_remaining = (lot.end_time - datetime.now(timezone.utc)).total_seconds()
+        if time_remaining <= 0:
+            lot.status = LotStatusEnum.ENDED
+            try:
+                self.db.add(lot)
+                await self.db.commit()
+            except IntegrityError:
+                await self.db.rollback()
+                raise BidCreateException()
+
         if lot.status == LotStatusEnum.ENDED:
             raise LotEndedException()
         
         if lot.price >= bid_data.amount:
             raise BidTooLowException()
 
-        remaining = (lot.end_time - datetime.now(timezone.utc)).total_seconds()
-        if remaining < settings.auction.time_extension:
-            lot.end_time += timedelta(seconds=settings.auction.time_extension)
+        if time_remaining < settings.auction.time_extension_seconds:
+            lot.end_time += timedelta(seconds=settings.auction.time_extension_seconds)
 
         lot.price = bid_data.amount
         
@@ -74,3 +83,15 @@ class AuctionService:
         except IntegrityError:
             await self.db.rollback()
             raise BidCreateException()
+
+
+    async def end_expired_lots(self) -> None:
+        stmt = (
+            update(Lot)
+            .where(Lot.status == LotStatusEnum.RUNNING)
+            .where(Lot.end_time <= func.now())
+            .values(status=LotStatusEnum.ENDED)
+        )
+
+        await self.db.execute(stmt)
+        await self.db.commit()

@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Annotated
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, PostgresDsn, PositiveInt
+from pydantic import BaseModel, Field, PostgresDsn, PositiveInt, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,9 +31,10 @@ class DatabaseSettings(BaseModel):
 
 
 class AuctionSettings(BaseModel):
-    time_extension: PositiveInt
+    time_extension_seconds: PositiveInt
     min_bid_step: BidDecimal
     min_duration_minutes: PositiveInt
+    lots_check_interval_seconds: PositiveInt
 
 
 class Settings(BaseSettings):
