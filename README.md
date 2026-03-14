@@ -18,14 +18,11 @@ A real-time auction service implementation.
 
 ## Getting Started
 
-1. Create a `.env` file with your configuration:
-   ```env
-   DB_NAME=auction_db
-   DB_USER=postgres
-   DB_PASSWORD=postgres
-   DB_HOST=db
-   DB_PORT=5432
+1. Create a `.env` file from the provided sample:
+   ```bash
+   cp .env.sample .env
    ```
+   *Note: Ensure the values in `.env` match your local or Docker environment.*
 
 2. Start the application using Docker Compose:
    ```bash
