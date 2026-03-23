@@ -16,27 +16,30 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     """Base class for all models."""
+
     pass
 
 
 class LotStatusEnum(StrEnum):
     """Enum for auction lot status."""
+
     RUNNING = "running"
     ENDED = "ended"
 
 
 class Lot(Base):
     """Lot model representing an item in the auction."""
+
     __tablename__ = "lots"
     __table_args__ = (CheckConstraint("price > 0", name="check_price_positive"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(255))
     status: Mapped[LotStatusEnum] = mapped_column(
-        Enum(LotStatusEnum), default=LotStatusEnum.RUNNING, nullable=False
+        Enum(LotStatusEnum), default=LotStatusEnum.RUNNING
     )
-    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     bids: Mapped[list["Bid"]] = relationship(
         back_populates="lot", cascade="all, delete-orphan"
@@ -48,15 +51,16 @@ class Lot(Base):
 
 class Bid(Base):
     """Bid model representing a bid placed on a lot."""
+
     __tablename__ = "bids"
     __table_args__ = (CheckConstraint("amount > 0", name="check_amount_positive"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    lot_id: Mapped[int] = mapped_column(ForeignKey("lots.id"), nullable=False)
-    bidder: Mapped[str] = mapped_column(String(63), nullable=False)
-    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    lot_id: Mapped[int] = mapped_column(ForeignKey("lots.id"))
+    bidder: Mapped[str] = mapped_column(String(63))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     timestamp: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now()
     )
 
     lot: Mapped["Lot"] = relationship(back_populates="bids")

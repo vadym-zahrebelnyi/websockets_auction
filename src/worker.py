@@ -7,6 +7,7 @@ from src.service import AuctionService
 
 settings = get_settings()
 
+
 async def run_auction_worker():
     """
     Background worker that periodically checks for and closes expired auction lots.
@@ -14,7 +15,7 @@ async def run_auction_worker():
     """
     while True:
         async with AsyncSessionLocal() as session:
-            service = AuctionService(session)
+            service = AuctionService(session, None)
             await service.end_expired_lots()
 
         await asyncio.sleep(settings.auction.lots_check_interval_seconds)
