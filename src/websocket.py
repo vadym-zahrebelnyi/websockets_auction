@@ -29,7 +29,7 @@ class WSConnectionManager:
         """Helper to send a message to a single connection and handle disconnect."""
         try:
             await connection.send_json(message)
-        except (WebSocketDisconnect, Exception):
+        except WebSocketDisconnect, Exception:
             self.disconnect(lot_id, connection)
 
     async def broadcast(self, lot_id: int, message: dict):
@@ -43,10 +43,12 @@ class WSConnectionManager:
         ]
         await asyncio.gather(*tasks)
 
-    async def subscribe(self, lot_id: int, websocket: WebSocket, lot_exists: bool = True):
+    async def subscribe(
+        self, lot_id: int, websocket: WebSocket, lot_exists: bool = True
+    ):
         """
         Handles the entire WebSocket lifecycle: validation, connection, listening, and cleanup.
-        
+
         Args:
             lot_id (int): The ID of the lot.
             websocket (WebSocket): The WebSocket connection object.

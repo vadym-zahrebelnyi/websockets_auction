@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status, HTTPException, WebSocket
 
-from src.dependencies import get_auction_service, get_ws_manager
+from src.dependencies import get_auction_service
 from src.schemas import LotReadSchema, LotCreateSchema, BidCreateSchema, BidReadSchema
 from src.service import AuctionService
 from src.exceptions import (
@@ -87,11 +87,7 @@ async def place_bid(lot_id: int, bid_data: BidCreateSchema, service: AService):
 
 
 @router.websocket("/ws/lots/{lot_id:int}")
-async def lot_subscription(
-    lot_id: int,
-    websocket: WebSocket,
-    service: AService
-):
+async def lot_subscription(lot_id: int, websocket: WebSocket, service: AService):
     """
     Subscribes to real-time updates for a specific lot via WebSocket.
     Clients receive notifications about new bids and time extensions.

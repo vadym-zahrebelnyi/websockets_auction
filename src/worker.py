@@ -7,6 +7,7 @@ from src.service import AuctionService
 
 settings = get_settings()
 
+
 async def run_auction_worker():
     """
     Background worker that periodically checks for and closes expired auction lots.

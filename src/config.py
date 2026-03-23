@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Annotated
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, PostgresDsn, PositiveInt, ValidationError
+from pydantic import BaseModel, Field, PostgresDsn, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,7 @@ BidDecimal = Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
 
 class DatabaseSettings(BaseModel):
     """Configuration for PostgreSQL connection."""
+
     user: NonEmptyStr
     password: NonEmptyStr
     host: NonEmptyStr
@@ -34,6 +35,7 @@ class DatabaseSettings(BaseModel):
 
 class AuctionSettings(BaseModel):
     """Business logic settings for auctions."""
+
     time_extension_seconds: PositiveInt
     min_bid_step: BidDecimal
     min_duration_minutes: PositiveInt
@@ -42,6 +44,7 @@ class AuctionSettings(BaseModel):
 
 class Settings(BaseSettings):
     """Main application settings loaded from environment variables."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -10,15 +10,15 @@ from src.dependencies import ws_manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     worker_task = asyncio.create_task(run_auction_worker())
-    
+
     yield
-    
+
     worker_task.cancel()
     try:
         await worker_task
     except asyncio.CancelledError:
         pass
-    
+
     await ws_manager.close_all()
 
 

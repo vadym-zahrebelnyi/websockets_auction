@@ -16,7 +16,7 @@ from src.exceptions import (
 from src.models import Lot, LotStatusEnum, Bid
 from src.schemas import LotCreateSchema, BidCreateSchema, BidPlacedReadSchema
 
-from src.websocket import WSConnectionManager
+from src.websocket import WSConnectionManager, WebSocket
 
 settings = get_settings()
 
