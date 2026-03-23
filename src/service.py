@@ -120,39 +120,39 @@ class AuctionService:
             raise LotEndedException()
 
         time_remaining = (lot.end_time - datetime.now(timezone.utc)).total_seconds()
-        if time_remaining <= 0:
+        is_expired = time_remaining <= 0
+
+        bid = None
+        if is_expired:
             lot.status = LotStatusEnum.ENDED
-            try:
-                await self.db.commit()
-            except IntegrityError:
-                await self.db.rollback()
-            raise LotEndedException()
+        else:
+            if lot.price >= bid_data.amount:
+                raise BidTooLowException()
 
-        if lot.price >= bid_data.amount:
-            raise BidTooLowException()
+            if time_remaining < settings.auction.time_extension_seconds:
+                lot.end_time += timedelta(
+                    seconds=settings.auction.time_extension_seconds
+                )
 
-        if time_remaining < settings.auction.time_extension_seconds:
-            lot.end_time += timedelta(seconds=settings.auction.time_extension_seconds)
-
-        lot.price = bid_data.amount
-
-        bid = Bid(lot_id=lot_id, bidder=bid_data.bidder, amount=bid_data.amount)
+            lot.price = bid_data.amount
+            bid = Bid(lot_id=lot_id, bidder=bid_data.bidder, amount=bid_data.amount)
+            self.db.add(bid)
 
         try:
-            self.db.add(bid)
             await self.db.commit()
-            await self.db.refresh(bid)
-
-            if self.ws:
-                message = BidPlacedReadSchema.model_validate(bid).model_dump(
-                    mode="json"
-                )
-                await self.ws.broadcast(lot_id, message)
-
-            return bid
         except IntegrityError:
             await self.db.rollback()
             raise BidCreateException()
+
+        if is_expired:
+            raise LotEndedException()
+
+        await self.db.refresh(bid)
+        if self.ws:
+            message = BidPlacedReadSchema.model_validate(bid).model_dump(mode="json")
+            await self.ws.broadcast(lot_id, message)
+
+        return bid
 
     async def end_expired_lots(self) -> None:
         """Updates the status of all expired lots to 'ended'."""
