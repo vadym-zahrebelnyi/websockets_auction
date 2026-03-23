@@ -16,7 +16,7 @@ async def get_ws_manager() -> WSConnectionManager:
     """Provides the singleton instance of the WebSocket connection manager."""
     return ws_manager
 
-def get_auction_service(
+async def get_auction_service(
     db: Annotated[AsyncSession, Depends(get_db)],
     ws: Annotated[WSConnectionManager, Depends(get_ws_manager)]
 ) -> AuctionService:

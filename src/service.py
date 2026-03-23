@@ -20,8 +20,10 @@ from src.websocket import WSConnectionManager
 
 settings = get_settings()
 
+
 class AuctionService:
     """Business logic for auction management."""
+
     def __init__(self, db: AsyncSession, ws: WSConnectionManager):
         """Initializes the service with database session and websocket manager."""
         self.db = db
@@ -36,6 +38,29 @@ class AuctionService:
         """
         result = await self.db.execute(select(Lot))
         return result.scalars().all()
+
+    async def get_lot(self, lot_id: int) -> Lot | None:
+        """
+        Retrieves a single lot by its ID.
+
+        Args:
+            lot_id (int): The ID of the lot to retrieve.
+
+        Returns:
+            Lot | None: The lot object if found, otherwise None.
+        """
+        return await self.db.get(Lot, lot_id)
+
+    async def subscribe_to_lot(self, lot_id: int, websocket: WebSocket) -> None:
+        """
+        Starts a WebSocket subscription for a lot after checking its existence.
+
+        Args:
+            lot_id (int): The ID of the lot.
+            websocket (WebSocket): The WebSocket connection object.
+        """
+        lot = await self.get_lot(lot_id)
+        await self.ws.subscribe(lot_id, websocket, lot_exists=lot is not None)
 
     async def create_lot(self, lot_data: LotCreateSchema) -> Lot:
         """
@@ -84,7 +109,10 @@ class AuctionService:
             BidTooLowException: If the bid amount is not higher than the current price.
             BidCreateException: If there is a database error during processing.
         """
-        lot = await self.db.get(Lot, lot_id)
+        stmt = select(Lot).where(Lot.id == lot_id).with_for_update()
+        result = await self.db.execute(stmt)
+        lot = result.scalar_one_or_none()
+
         if not lot:
             raise LotNotFoundException()
 
@@ -95,12 +123,11 @@ class AuctionService:
         if time_remaining <= 0:
             lot.status = LotStatusEnum.ENDED
             try:
-                self.db.add(lot)
                 await self.db.commit()
             except IntegrityError:
                 await self.db.rollback()
             raise LotEndedException()
-        
+
         if lot.price >= bid_data.amount:
             raise BidTooLowException()
 
@@ -108,28 +135,24 @@ class AuctionService:
             lot.end_time += timedelta(seconds=settings.auction.time_extension_seconds)
 
         lot.price = bid_data.amount
-        
-        bid = Bid(
-            lot_id=lot_id,
-            bidder=bid_data.bidder,
-            amount=bid_data.amount
-        )
+
+        bid = Bid(lot_id=lot_id, bidder=bid_data.bidder, amount=bid_data.amount)
 
         try:
             self.db.add(bid)
-            self.db.add(lot)
             await self.db.commit()
             await self.db.refresh(bid)
 
             if self.ws:
-                message = BidPlacedReadSchema.model_validate(bid).model_dump(mode="json")
+                message = BidPlacedReadSchema.model_validate(bid).model_dump(
+                    mode="json"
+                )
                 await self.ws.broadcast(lot_id, message)
-            
+
             return bid
         except IntegrityError:
             await self.db.rollback()
             raise BidCreateException()
-
 
     async def end_expired_lots(self) -> None:
         """Updates the status of all expired lots to 'ended'."""

@@ -14,7 +14,7 @@ async def run_auction_worker():
     """
     while True:
         async with AsyncSessionLocal() as session:
-            service = AuctionService(session)
+            service = AuctionService(session, None)
             await service.end_expired_lots()
 
         await asyncio.sleep(settings.auction.lots_check_interval_seconds)

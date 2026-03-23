@@ -38,6 +38,17 @@ class BidCreateSchema(BaseModel):
     ]
 
 
+class BidReadSchema(BaseModel):
+    """Schema for reading bid information."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    lot_id: int
+    bidder: str
+    amount: Decimal
+    timestamp: datetime
+
+
 
 class BidPlacedReadSchema(BaseModel):
     """Schema for bid notification message via WebSocket."""
